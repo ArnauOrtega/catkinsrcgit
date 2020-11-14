@@ -1,9 +1,9 @@
-obstacle_range: 5.5
-raytrace_range: 6.0
-footprint: [[x0, y0], [x1, y1], ... [xn, yn]]
+obstacle_range: 4.5
+raytrace_range: 5.0
+footprint: [[1, 1], [1, -1], [-1,-1],[-1,1]]
 #robot_radius: ir_of_robot
 inflation_radius: 0.55
 
 observation_sources: point_cloud_sensor
 
-point_cloud_sensor: {sensor_frame: camera_link, data_type: PointCloud2, topic: /voxel_cloud, marking: true, clearing: true}
+point_cloud_sensor: {sensor_frame: camera_link, data_type: PointCloud2, topic: /camera/depth/color/points, marking: true, clearing: true}
