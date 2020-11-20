@@ -37,7 +37,7 @@ const byte LPWMpin = motorpins[5];           //ENB
 unsigned long lastMilli = 0;
 
 const double radius = 0.068;              //Wheel radius, in m
-const double track = 0.252;               //track(distance between driving wheels), in m
+const double track = 0.272;               //track(distance between driving wheels), in m
 const int pulses_per_revolution = 663;    // encoder pulses per shaft revolution
 
 double speed_req = 0;                         //Desired linear speed for the robot, in m/s
