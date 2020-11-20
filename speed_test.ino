@@ -90,8 +90,6 @@ void changeDir( const std_msgs::UInt8& cmd_msg){
       dist_msg.data = Ldistancemm;
      }
       distance.publish( &dist_msg );
-      dist_msg.data = PWM;
-      distance.publish( &dist_msg );
  }
 void changePWM( const std_msgs::UInt8& pwm_msg){
   PWM = pwm_msg.data;
