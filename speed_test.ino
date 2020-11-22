@@ -16,13 +16,14 @@ const byte LencoderA = 3;                    // Interrupt pin Left encoder
 const byte LencoderB = encoderpinsB[1];      // Left B pin
 const byte diameter = 136;                   // wheel diameter in mm
 const int pulses_per_revolution = 663;       // encoder pulses per shaft revolution
-int pulses[2];
+long pulses[2];
 byte last;
-byte PWM = 255;
+byte PWM = 150;
 long Rdistancemm;
 long Ldistancemm;
 long Avgdistancemm;
-
+byte direction;
+byte D = 0;
 #include <ros.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Float32.h>
@@ -31,65 +32,7 @@ ros::NodeHandle  nh;
 std_msgs::Float32 dist_msg;
 ros::Publisher distance("distance", &dist_msg);
 void changeDir( const std_msgs::UInt8& cmd_msg){
-
- switch (cmd_msg.data) {
-    case 0:
-      STOP();
-      last = 0;
-      break;
-    case 1:
-      FOWARD();
-      if(last != 1){
-        reset_counter();
-        }
-       last = 1;
-       break;
-    case 2:
-       BACK();
-       if(last != 2){
-        reset_counter();
-        }
-       last = 2;
-       break;
-    case 3:
-        RIGHT();
-        if(last != 3){
-        reset_counter();
-        }
-       last = 3;
-        break;
-    case 4:
-        LEFT();
-        if(last != 4){
-        reset_counter();
-        }
-       last = 4;
-        break;
-    default:
-        STOP();
-        last = 0;
-        reset_counter();
-        break;
-    }
-    noInterrupts();
-     Rdistancemm = (pulses[0]/pulses_per_revolution)*diameter*M_PI;
-     Ldistancemm = (pulses[1]/pulses_per_revolution)*diameter*M_PI;
-     interrupts();
-     if(last==1){
-     Avgdistancemm = (Rdistancemm + Ldistancemm)/2;
-     dist_msg.data = Avgdistancemm;
-     }
-     else if (last==2){
-      Avgdistancemm = -(Rdistancemm + Ldistancemm)/2;
-     dist_msg.data = Avgdistancemm;
-     }
-     else if(last == 3){
-      dist_msg.data = Ldistancemm;
-     }
-     else if (last == 4){
-      dist_msg.data = Ldistancemm;
-     }
-      distance.publish( &dist_msg );
+  direction = cmd_msg.data; 
  }
 void changePWM( const std_msgs::UInt8& pwm_msg){
   PWM = pwm_msg.data;
@@ -114,7 +57,60 @@ void setup()
 void loop()
 {  
   nh.spinOnce();
-  delay(1);
+  switch (direction) {
+    case 0:
+      STOP();
+      last = 0;
+      break;
+    case 1:
+      FOWARD();
+      if(last != 1){
+        reset_counter();
+        D = 0;
+        }
+       last = 1;
+       break;
+    case 2:
+       BACK();
+       if(last != 2){
+        reset_counter();
+        D = 0;
+        }
+       last = 2;
+       break;
+    case 3:
+        RIGHT();
+        if(last != 3){
+        reset_counter();
+        D = 0;
+        }
+       last = 3;
+        break;
+    case 4:
+        LEFT();
+        if(last != 4){
+        reset_counter();
+        D = 0;
+        }
+       last = 4;
+        break;
+    default:
+        STOP();
+        last = 0;
+        reset_counter();
+        D = 0;
+        break;
+    }
+  noInterrupts();
+  Rdistancemm = pulses[0];
+  Ldistancemm = pulses[1];
+  interrupts();
+  dist_msg.data = Rdistancemm;
+  distance.publish( &dist_msg );
+  dist_msg.data = Ldistancemm;
+  distance.publish( &dist_msg );
+  reset_counter();
+  delay(10);
 }
 void MotorInit(){
   for(byte i=0; i<6;i++)
@@ -151,40 +147,32 @@ void LMotorStop(){
   analogWrite(LPWMpin, 0);
 }
 void FOWARD(){
-  int L = 0;
-  int R = 0;
-  RMotorF(PWM-R);
-  LMotorF(PWM-L);
-  if (pulses[0] > pulses [1]) R++;
-  else if(pulses [1] > pulses[0]) L++;
+  RMotorF(PWM-D);
+  LMotorF(PWM);
+  if (pulses[0] > pulses [1]) D++;
+  else if(pulses [1] > pulses[0]) D--;
 }
 void BACK(){
-  int L = 0;
-  int R = 0;
-  RMotorB(PWM-R);
-  LMotorB(PWM-L);
-  if (pulses[0] < pulses [1]) R++;
-  else if(pulses [1] < pulses[0]) L++;
+  RMotorB(PWM-D);
+  LMotorB(PWM);
+  if (pulses[0] < pulses [1]) D++;
+  else if(pulses [1] < pulses[0]) D--;
 }
 void STOP(){
   RMotorStop();
   LMotorStop();
 }
 void LEFT(){
-  int L = 0;
-  int R = 0;
-  RMotorB(PWM-R);
-  LMotorF(PWM-L);
-  if (-pulses[0] > pulses [1]) R++;
-  else if(pulses [1] > -pulses[0]) L++;
+  RMotorB(PWM-D);
+  LMotorF(PWM);
+  if (-pulses[0] > pulses [1]) D++;
+  else if(pulses [1] > -pulses[0]) D--;
   }
 void RIGHT(){
-  int L = 0;
-  int R = 0;
-    RMotorF(PWM-R);
-    LMotorB(PWM-L);
-    if (pulses[0] > -pulses [1]) R++;
-    else if(-pulses [1] > pulses[0]) L++;
+    RMotorF(PWM-D);
+    LMotorB(PWM);
+    if (pulses[0] > -pulses [1]) D++;
+    else if(-pulses [1] > pulses[0]) D--;
 }
 void reset_counter()
 {
@@ -203,8 +191,8 @@ void LEncoderInit(){
 void Rpulsecounter()
 {
     int val = digitalRead(encoderpinsB[0]);
-    if(val == LOW)pulses[0]--;
-    else if(val == HIGH) pulses[0]++;
+    if(val == LOW)pulses[0]++;
+    else if(val == HIGH) pulses[0]--;
 }
 void Lpulsecounter()
 {
