@@ -21,6 +21,9 @@
         <arg name="approx_sync" value="false"/>
         <arg name="wait_imu_to_init" value="false"/>
         <arg name="imu_topic" value="/rtabmap/imu"/>
-    </include>
+      </include>
+      <node pkg="rosserial_python" type="serial_node.py" name="serial_node">
+         <param name="port" value="/dev/ttyACM0"/>
+      </node>
 
 </launch>
