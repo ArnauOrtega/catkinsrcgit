@@ -18,15 +18,18 @@ const byte Rledpin = 9;
 const byte Gledpin = 6;
 const byte diameter = 136;                   // wheel diameter in mm
 const int pulses_per_revolution = 663;       // encoder pulses per shaft revolution
+const byte loops = 100;
 long pulses[2];
 byte last;
-byte PWM = 100;
+byte PWM = 60;
 long Rdistancemm;
 long Ldistancemm;
 long Avgdistancemm;
 byte direction;
 byte D = 0;
 bool human;
+bool running = true;
+byte counter = 0;
 #include <ros.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/Bool.h>
@@ -97,11 +100,21 @@ void loop()
        last = 2;
        break;
     case 3:
+      if (running == true){
         RIGHT();
+      }
+      else{
+        STOP();
+      }
         if(last != 3){
         reset_counter();
         D = 0;
         }
+       if (counter >= loops){
+        running == !running;
+        counter = 0;
+       }
+       counter++;
        last = 3;
         break;
     case 4:
@@ -118,6 +131,7 @@ void loop()
         reset_counter();
         D = 0;
         }
+       counter++;
        last = 5;
         break;
     case 6: 
