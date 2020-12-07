@@ -14,23 +14,38 @@ const byte RencoderA = 2;                    // Interrupt pin Right encoder
 const byte RencoderB = encoderpinsB[0];      // Right B pin
 const byte LencoderA = 3;                    // Interrupt pin Left encoder
 const byte LencoderB = encoderpinsB[1];      // Left B pin
+const byte Rledpin = 9;
+const byte Gledpin = 6;
 const byte diameter = 136;                   // wheel diameter in mm
 const int pulses_per_revolution = 663;       // encoder pulses per shaft revolution
 long pulses[2];
 byte last;
-byte PWM = 150;
+byte PWM = 100;
 long Rdistancemm;
 long Ldistancemm;
 long Avgdistancemm;
 byte direction;
 byte D = 0;
+bool human;
 #include <ros.h>
 #include <std_msgs/UInt8.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 
 ros::NodeHandle  nh;
 std_msgs::Float32 dist_msg;
 ros::Publisher distance("distance", &dist_msg);
+void changeLED( const std_msgs::Bool& hmn_msg){
+  human = hmn_msg.data;
+  if (human == true){
+  digitalWrite(Gledpin , HIGH);
+  digitalWrite(Rledpin , LOW);
+  }
+  else{
+    digitalWrite(Gledpin , LOW);
+    digitalWrite(Rledpin , HIGH);
+ }
+}
 void changeDir( const std_msgs::UInt8& cmd_msg){
   direction = cmd_msg.data; 
  }
@@ -42,15 +57,18 @@ void changePWM( const std_msgs::UInt8& pwm_msg){
 
 ros::Subscriber<std_msgs::UInt8> dir("dir", &changeDir );
 ros::Subscriber<std_msgs::UInt8> pwm("PWM", &changePWM );
+ros::Subscriber<std_msgs::Bool> humancheck("humancheck", &changeLED );
 
 void setup()
 { 
    REncoderInit();
   LEncoderInit();
   MotorInit();
+  LEDInit();
   nh.initNode();
   nh.subscribe(dir);
   nh.subscribe(pwm);
+  nh.subscribe(humancheck);
   nh.advertise(distance);
 }
 
@@ -94,6 +112,22 @@ void loop()
         }
        last = 4;
         break;
+    case 5:
+        ORIGHT();
+        if(last != 5){
+        reset_counter();
+        D = 0;
+        }
+       last = 5;
+        break;
+    case 6: 
+        OLEFT();
+        if(last != 6){
+        reset_counter();
+        D = 0;
+        }
+       last = 6;
+        break;   
     default:
         STOP();
         last = 0;
@@ -163,17 +197,29 @@ void STOP(){
   LMotorStop();
 }
 void LEFT(){
-  RMotorB(PWM-D);
-  LMotorF(PWM);
+  RMotorB(PWM);
+  LMotorF(0);
   if (-pulses[0] > pulses [1]) D++;
   else if(pulses [1] > -pulses[0]) D--;
   }
 void RIGHT(){
+    RMotorF(PWM);
+    LMotorB(0);
+    if (pulses[0] > -pulses [1]) D++;
+    else if(-pulses [1] > pulses[0]) D--;
+}
+void ORIGHT(){
     RMotorF(PWM-D);
     LMotorB(PWM);
     if (pulses[0] > -pulses [1]) D++;
     else if(-pulses [1] > pulses[0]) D--;
 }
+void OLEFT(){
+  RMotorB(PWM-D);
+  LMotorF(PWM);
+  if (-pulses[0] > pulses [1]) D++;
+  else if(pulses [1] > -pulses[0]) D--;
+  }
 void reset_counter()
 {
   for(byte i=0; i<2;i++){
@@ -199,4 +245,8 @@ void Lpulsecounter()
     int val = digitalRead(encoderpinsB[1]);
     if(val == LOW)pulses[1]--;
     else if(val == HIGH) pulses[1]++;
+}
+void LEDInit(){
+  pinMode(Gledpin,OUTPUT);
+  pinMode(Rledpin,OUTPUT); 
 }
